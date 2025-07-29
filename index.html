@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face Attendance System</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <i class="fas fa-camera"></i>
+          <h1>Face Attendance System</h1>
+        </div>
+        <div class="header-actions">
+          <div class="current-time" id="currentTime"></div>
+          <button id="settingsBtn" class="btn-icon" title="Settings">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Camera Section -->
+      <section class="camera-section">
+        <div class="camera-container">
+          <video id="webcam" autoplay playsinline></video>
+          <canvas id="canvas" style="display:none;"></canvas>
+          <div class="camera-overlay">
+            <div class="face-detection-frame"></div>
+          </div>
+        </div>
+        
+        <!-- Status Display -->
+        <div id="status" class="status-display">
+          <div class="status-icon">
+            <i class="fas fa-circle"></i>
+          </div>
+          <span class="status-text">Initializing camera...</span>
+        </div>
+      </section>
+
+      <!-- Action Buttons -->
+      <section class="action-section">
+        <div class="action-grid">
+          <button id="captureBtn" class="btn-primary">
+            <i class="fas fa-camera"></i>
+            <span>Mark Attendance</span>
+          </button>
+          
+          <button id="addFaceBtn" class="btn-secondary">
+            <i class="fas fa-user-plus"></i>
+            <span>Register Face</span>
+          </button>
+          
+          <button id="myAttendanceBtn" class="btn-info">
+            <i class="fas fa-user-clock"></i>
+            <span>My Attendance</span>
+          </button>
+          
+          <button id="viewAttendanceBtn" class="btn-tertiary">
+            <i class="fas fa-chart-line"></i>
+            <span>Admin View</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Recent Activity -->
+      <section class="recent-activity">
+        <h3>Recent Activity</h3>
+        <div id="recentList" class="activity-list">
+          <div class="activity-item">
+            <div class="activity-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="activity-content">
+              <span class="activity-name">System Ready</span>
+              <span class="activity-time">Just now</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Registration Modal -->
+    <div id="registrationModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Register New Face</h2>
+          <button class="close-btn" onclick="hideRegistrationModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="passkeyInput">Security Passkey</label>
+            <input type="password" id="passkeyInput" placeholder="Enter passkey " autocomplete="off">
+          </div>
+          
+          <div class="form-group">
+            <label for="nameInput">Full Name</label>
+            <input type="text" id="nameInput" placeholder="Enter your name" maxlength="32" autocomplete="off">
+          </div>
+          
+          <div class="form-group">
+            <label for="employeeIdReg">Employee ID</label>
+            <input type="text" id="employeeIdReg" placeholder="Enter unique employee ID" maxlength="20" autocomplete="off">
+          </div>
+          
+          <div class="preview-section">
+            <div class="preview-frame">
+              <i class="fas fa-video"></i>
+              <span>Live Camera Preview</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button onclick="hideRegistrationModal()" class="btn-outline">Cancel</button>
+          <button id="registerBtn" class="btn-primary">
+            <i class="fas fa-plus"></i>
+            Register Face
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employee Self-Service Modal -->
+    <div id="myAttendanceModal" class="modal">
+      <div class="modal-content large">
+        <div class="modal-header">
+          <h2>My Attendance History</h2>
+          <button class="close-btn" onclick="hideMyAttendanceModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="employee-auth-section">
+            <div class="auth-icon">
+              <i class="fas fa-id-card"></i>
+            </div>
+            <h3>Employee Access Portal</h3>
+            <p>Enter your unique Employee ID to view your personal attendance history</p>
+            <div class="form-group">
+              <label for="employeeIdInput">Employee ID</label>
+              <input type="text" id="employeeIdInput" placeholder="Enter your unique employee ID" maxlength="20">
+              <small class="input-help">Use the same ID that was registered with your face</small>
+            </div>
+            <button id="loadMyAttendanceBtn" class="btn-primary">
+              <i class="fas fa-search"></i>
+              View My Records
+            </button>
+          </div>
+          
+          <div id="myRecordsSection" class="records-section" style="display: none;">
+            <!-- Employee Info Header -->
+            <div class="employee-header">
+              <div class="employee-info">
+                <h4 id="employeeName">Employee Dashboard</h4>
+                <span id="employeeIdDisplay" class="employee-id-badge"></span>
+              </div>
+              <div class="last-updated">
+                <small>Last updated: <span id="lastUpdated"></span></small>
+              </div>
+            </div>
+            
+            <!-- Personal Stats -->
+            <div class="personal-stats-grid">
+              <div class="personal-stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-number" id="myTotalDays">0</span>
+                  <span class="stat-label">Total Days</span>
+                </div>
+              </div>
+              
+              <div class="personal-stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-number" id="thisMonthDays">0</span>
+                  <span class="stat-label">This Month</span>
+                </div>
+              </div>
+              
+              <div class="personal-stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-number" id="avgTime">--:--</span>
+                  <span class="stat-label">Avg Check-in</span>
+                </div>
+              </div>
+              
+              <div class="personal-stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-number" id="attendanceRate">0%</span>
+                  <span class="stat-label">This Month Rate</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Personal Filter Controls -->
+            <div class="personal-filter-controls">
+              <div class="filter-section">
+                <label>Time Period:</label>
+                <select id="personalFilterType">
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">This Month</option>
+                  <option value="quarter">Last 3 Months</option>
+                  <option value="all">All My Records</option>
+                </select>
+              </div>
+              <div class="action-section">
+                <button id="personalFilterBtn" class="btn-outline">
+                  <i class="fas fa-filter"></i>
+                  Filter
+                </button>
+                <button id="personalExportBtn" class="btn-outline">
+                  <i class="fas fa-download"></i>
+                  Export My Data
+                </button>
+              </div>
+            </div>
+            
+            <!-- Personal Records Table -->
+            <div class="personal-records-table">
+              <div class="table-header">
+                <h4 id="personalRecordsTitle">My Attendance Records</h4>
+                <span id="recordCount" class="record-count">0 records</span>
+              </div>
+              <div id="personalRecordsContainer" class="records-container">
+                <!-- Personal records will be populated here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Attendance Viewer Modal -->
+    <div id="attendanceModal" class="modal">
+      <div class="modal-content large">
+        <div class="modal-header">
+          <h2>Admin - All Attendance Records</h2>
+          <button class="close-btn" onclick="hideAttendanceModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="auth-section">
+            <div class="auth-icon">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3>Admin Access Required</h3>
+            <p>Enter admin passkey to view all attendance records</p>
+            <div class="form-group">
+              <label for="viewPasskeyInput">Admin Passkey</label>
+              <input type="password" id="viewPasskeyInput" placeholder="Enter admin passkey ">
+            </div>
+            <button id="loadAttendanceBtn" class="btn-primary">
+              <i class="fas fa-unlock"></i>
+              Load All Records
+            </button>
+          </div>
+          
+          <div id="recordsSection" class="records-section" style="display: none;">
+            <!-- Admin Statistics Cards -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-number" id="totalUsers">0</span>
+                  <span class="stat-label">Total Employees</span>
+                </div>
+              </div>
+              
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-number" id="todayCount">0</span>
+                  <span class="stat-label">Today's Records</span>
+                </div>
+              </div>
+              
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-number" id="avgConfidence">0%</span>
+                  <span class="stat-label">Avg Confidence</span>
+                </div>
+              </div>
+              
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-number" id="totalRecords">0</span>
+                  <span class="stat-label">Total Records</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Admin Filter Controls -->
+            <div class="filter-controls">
+              <div class="filter-section">
+                <label>Filter by:</label>
+                <select id="filterType">
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="all">All Records</option>
+                </select>
+              </div>
+              <div class="search-section">
+                <input type="text" id="searchInput" placeholder="Search by name or employee ID">
+                <button id="searchBtn" class="btn-outline">
+                  <i class="fas fa-search"></i>
+                  Search
+                </button>
+              </div>
+              <div class="action-section">
+                <button id="filterBtn" class="btn-outline">
+                  <i class="fas fa-filter"></i>
+                  Filter
+                </button>
+                <button id="exportBtn" class="btn-outline">
+                  <i class="fas fa-download"></i>
+                  Export CSV
+                </button>
+              </div>
+            </div>
+            
+            <!-- Admin Records Table -->
+            <div class="records-table">
+              <div class="table-header">
+                <h4 id="recordsTitle">All Attendance Records</h4>
+                <span id="adminRecordCount" class="record-count">0 records</span>
+              </div>
+              <div id="recordsContainer" class="records-container">
+                <!-- All records will be populated here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>System Settings</h2>
+          <button class="close-btn" onclick="hideSettingsModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="settings-section">
+            <h4>Camera Settings</h4>
+            <div class="setting-item">
+              <label>Camera Quality</label>
+              <select id="cameraQuality">
+                <option value="low">Low (320x240)</option>
+                <option value="medium" selected>Medium (640x480)</option>
+                <option value="high">High (1280x720)</option>
+              </select>
+            </div>
+            
+            <div class="setting-item">
+              <label>Face Detection Sensitivity</label>
+              <input type="range" id="sensitivitySlider" min="70" max="95" value="85">
+              <span id="sensitivityValue">85%</span>
+            </div>
+          </div>
+          
+          <div class="settings-section">
+            <h4>System Settings</h4>
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="soundEnabled" checked>
+                Enable Sound Notifications
+              </label>
+            </div>
+            
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="autoHide" checked>
+                Auto-hide Success Messages
+              </label>
+            </div>
+            
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="darkMode">
+                Enable Dark Mode
+              </label>
+            </div>
+          </div>
+          
+          <div class="settings-section">
+            <h4>System Information</h4>
+            <div class="system-info">
+              <div class="info-item">
+                <span>Version:</span>
+                <span>1.0.0</span>
+              </div>
+              <div class="info-item">
+                <span>Last Updated:</span>
+                <span>December 2024</span>
+              </div>
+            
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button onclick="hideSettingsModal()" class="btn-outline">Cancel</button>
+          <button id="saveSettingsBtn" class="btn-primary">
+            <i class="fas fa-save"></i>
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text">
+          <span id="loadingMessage">Processing...</span>
+          <div class="loading-progress">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
